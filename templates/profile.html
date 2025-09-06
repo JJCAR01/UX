@@ -1,0 +1,142 @@
+<div id="profileContent">
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">
+            <i class="fas fa-user"></i> Perfil de Usuario
+        </h3>
+        
+        <div class="grid grid-cols-2" style="gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Nombre</label>
+                <p id="profileName" style="color: var(--gray-900); font-weight: 600;">Cargando...</p>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Usuario</label>
+                <p id="profileUsername" style="color: var(--gray-900); font-weight: 600;">Cargando...</p>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Correo</label>
+                <p id="profileEmail" style="color: var(--gray-900); font-weight: 600;">Cargando...</p>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Rol</label>
+                <p id="profileRole" style="color: var(--gray-900); font-weight: 600;">Cargando...</p>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Equipo</label>
+                <p id="profileTeam" style="color: var(--gray-900); font-weight: 600;">Cargando...</p>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="openEditProfileModal()">
+            <i class="fas fa-edit"></i> Editar Perfil
+        </button>
+    </div>
+</div>
+
+<!-- Modal de Edición de Perfil -->
+<div id="editProfileModal" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 style="font-size: 1.25rem;"><i class="fas fa-edit"></i> Editar Perfil</h3>
+            <button onclick="closeModal('editProfileModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray-500);">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editProfileForm">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Nombre *</label>
+                    <input type="text" id="editProfileName" class="input" required placeholder="Nombre completo">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Correo *</label>
+                    <input type="email" id="editProfileEmail" class="input" required placeholder="correo@empresa.com">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Nueva Contraseña (dejar en blanco para no cambiar)</label>
+                    <input type="password" id="editProfilePassword" class="input" placeholder="••••••••">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('editProfileModal')">Cancelar</button>
+            <button class="btn btn-success" onclick="saveProfile()">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function initScreen(screenName) {
+        if (screenName === 'profile' && currentUser) {
+            // Mostrar información del usuario
+            document.getElementById('profileName').textContent = currentUser.name;
+            document.getElementById('profileUsername').textContent = currentUser.username;
+            document.getElementById('profileEmail').textContent = currentUser.email;
+            document.getElementById('profileRole').textContent = currentUser.role;
+            document.getElementById('profileTeam').textContent = currentUser.team || 'No asignado';
+        }
+    }
+
+    function openEditProfileModal() {
+        if (!currentUser) return;
+        
+        // Precargar datos en el formulario
+        document.getElementById('editProfileName').value = currentUser.name;
+        document.getElementById('editProfileEmail').value = currentUser.email;
+        document.getElementById('editProfilePassword').value = '';
+        
+        openModal('editProfileModal');
+    }
+
+    function saveProfile() {
+        showLoading('Guardando cambios...');
+        
+        setTimeout(() => {
+            const name = document.getElementById('editProfileName').value;
+            const email = document.getElementById('editProfileEmail').value;
+            const password = document.getElementById('editProfilePassword').value;
+            
+            if (!name || !email) {
+                showNotification('Por favor completa los campos obligatorios', 'error');
+                hideLoading();
+                return;
+            }
+
+            // Actualizar usuario en la base de datos
+            const userIndex = database.users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                database.users[userIndex] = {
+                    ...database.users[userIndex],
+                    name,
+                    email,
+                    ...(password && { password })
+                };
+                
+                // Actualizar currentUser
+                currentUser = {
+                    ...currentUser,
+                    name,
+                    email,
+                    ...(password && { password })
+                };
+                
+                saveDatabase();
+                
+                // Actualizar UI
+                document.getElementById('welcomeMessage').textContent = `Bienvenido, ${name}`;
+                document.getElementById('profileName').textContent = name;
+                document.getElementById('profileUsername').textContent = currentUser.username;
+                document.getElementById('profileEmail').textContent = email;
+                document.getElementById('profileRole').textContent = currentUser.role;
+                document.getElementById('profileTeam').textContent = currentUser.team || 'No asignado';
+                
+                hideLoading();
+                closeModal('editProfileModal');
+                showNotification('Perfil actualizado correctamente', 'success');
+            } else {
+                hideLoading();
+                showNotification('Error al actualizar el perfil', 'error');
+            }
+        }, 1000);
+    }
+</script>

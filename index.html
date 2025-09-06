@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario Profesional</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Notificaciones -->
+    <div id="notification" class="notification hidden">
+        <i id="notification-icon"></i>
+        <span id="notification-message"></span>
+    </div>
+
+    <!-- Pantalla de Login -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="text-center" style="margin-bottom: 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
+                <h1 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.5rem;">Sistema de Inventario</h1>
+                <p style="color: var(--gray-500);">Ingresa tus credenciales para continuar</p>
+            </div>
+            
+            <form id="loginForm">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Usuario</label>
+                    <input type="text" class="input" placeholder="usuario@empresa.com" required>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Contraseña</label>
+                    <input type="password" class="input" placeholder="••••••••" required>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="teamSelect" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--gray-700);">Equipo/Placa</label>
+                    <select id="teamSelect" class="input" required title="Selecciona el equipo o placa">
+                        <option value="">Seleccionar equipo...</option>
+                        <option value="EQUIPO-001">EQUIPO-001 - Producción</option>
+                        <option value="EQUIPO-002">EQUIPO-002 - Mantenimiento</option>
+                        <option value="EQUIPO-003">EQUIPO-003 - Calidad</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; justify-content: center;">
+                    <button type="submit" class="btn-login">
+                        <i class="fas fa-lock-open"></i> Iniciar Sesión
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Aplicación Principal -->
+    <div id="appScreen" class="app-layout hidden">
+        <!-- Sidebar -->
+        
+        <div class="sidebar">
+           
+            <div class="sidebar-header">
+                <button id="toggleSidebar" class="menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <br>
+
+                <div class="sidebar-title">
+                    <h2 >Inventario</h2>
+                    <p class="text-sm" id="currentTeam">EQUIPO-001</p>
+        
+                </div>
+          </div>
+            
+            
+            <nav class="sidebar-nav">
+                <div class="sidebar-item active" data-screen="dashboard">
+                    <i class="fas fa-chart-bar"></i> <span>Dashboard</span>
+                </div>
+                <div class="sidebar-item" data-screen="inventory">
+                    <i class="fas fa-boxes"></i> <span>Inventario</span>
+                </div>
+                <div class="sidebar-item" data-screen="reports">
+                    <i class="fas fa-file-alt"></i> <span>Reportes</span>
+                </div>
+                <div class="sidebar-item" data-screen="import">
+                    <i class="fas fa-file-import"></i> <span>Importar Excel</span>
+                </div>
+                <div class="sidebar-item" data-screen="profile">
+                    <i class="fas fa-user"></i> <span>Mi Perfil</span>
+                </div>
+            </nav>
+
+        </div>
+
+        <!-- Contenido Principal -->
+        <div class="main-content">
+            <header class="header">
+                <div>
+                    <h1 id="pageTitle">Dashboard</h1>
+                    <p class="text-sm" style="color: var(--gray-500);" id="welcomeMessage">Bienvenido de vuelta, Usuario</p>
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Salir
+                    </button>
+                </div>
+            </header>
+
+            <main class="content">
+                <!-- Secciones de contenido se cargarán dinámicamente -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Modales -->
+    <div id="addProductModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem;"><i class="fas fa-plus"></i> Agregar Nuevo Producto</h3>
+                <button onclick="closeModal('addProductModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray-500);">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addProductForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Código</label>
+                            <input type="text" class="input" placeholder="PROD-001" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Categoría</label>
+                            <select class="input" required title="Selecciona la categoría">
+                                <option value="">Seleccionar...</option>
+                                <option value="Ferretería">Ferretería</option>
+                                <option value="Electrónica">Electrónica</option>
+                                <option value="Oficina">Oficina</option>
+                                <option value="Limpieza">Limpieza</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Nombre</label>
+                        <input type="text" class="input" placeholder="Tornillo hexagonal M8" required>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Descripción</label>
+                        <textarea class="input" rows="3" placeholder="Descripción del producto..."></textarea>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Cantidad</label>
+                            <input type="number" class="input" min="0" required placeholder="Cantidad" title="Ingrese la cantidad">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Unidad</label>
+                            <select class="input" title="Selecciona la unidad">
+                                <option value="unidades">Unidades</option>
+                                <option value="metros">Metros</option>
+                                <option value="kg">Kilogramos</option>
+                                <option value="litros">Litros</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addProductModal')">Cancelar</button>
+                <button class="btn btn-success" onclick="saveProduct()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edición -->
+    <div id="editProductModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem;"><i class="fas fa-edit"></i> Editar Producto</h3>
+                <button onclick="closeModal('editProductModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray-500);">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario de edición se carga dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editProductModal')">Cancelar</button>
+                <button class="btn btn-success" onclick="updateProduct()">
+                    <i class="fas fa-save"></i> Actualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Loading -->
+    <div id="loadingModal" class="modal-overlay hidden">
+        <div class="modal" style="max-width: 300px;">
+            <div class="modal-body text-center">
+                <div class="spinner"></div>
+                <p id="loadingMessage" style="margin-top: 1rem;">Procesando...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        const toggleBtn = document.getElementById("toggleSidebar");
+        const sidebar = document.querySelector(".sidebar");
+
+        toggleBtn.addEventListener("click", () => {
+        if (window.innerWidth > 768) {
+            sidebar.classList.toggle("collapsed");
+        }
+        });
+
+
+        // ===== BASE DE DATOS =====
+        let database = {
+            users: [
+                { id: 1, username: "admin", password: "admin123", name: "Administrador", email: "admin@empresa.com", role: "Administrador" },
+                { id: 2, username: "usuario", password: "user123", name: "Usuario General", email: "usuario@empresa.com", role: "Usuario" }
+            ],
+            products: [
+                { id: 1, code: "TORN-001", name: "Tornillo M8 x 20mm", description: "Tornillo hexagonal galvanizado", category: "Ferretería", quantity: 150, unit: "unidades", lastUpdated: "2023-09-15T10:30:00" },
+                { id: 2, code: "CABLE-002", name: "Cable UTP Cat 6", description: "Cable de red categoría 6", category: "Electrónica", quantity: 45, unit: "metros", lastUpdated: "2023-09-14T14:20:00" },
+                { id: 3, code: "PAPEL-003", name: "Papel Bond A4", description: "Papel blanco 75g para impresión", category: "Oficina", quantity: 25, unit: "paquetes", lastUpdated: "2023-09-13T09:15:00" }
+            ],
+            imports: [],
+            reports: []
+        };
+
+        // Cargar datos desde localStorage si existen
+        function loadDatabase() {
+            const savedData = localStorage.getItem('inventory_database');
+            if (savedData) {
+                database = JSON.parse(savedData);
+            }
+        }
+
+        // Guardar datos en localStorage
+        function saveDatabase() {
+            localStorage.setItem('inventory_database', JSON.stringify(database));
+        }
+
+        // ===== NOTIFICACIONES =====
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const icon = document.getElementById('notification-icon');
+            const messageEl = document.getElementById('notification-message');
+            
+            notification.className = 'notification hidden';
+            
+            switch(type) {
+                case 'success':
+                    notification.classList.add('success');
+                    icon.className = 'fas fa-check-circle';
+                    break;
+                case 'error':
+                    notification.classList.add('error');
+                    icon.className = 'fas fa-exclamation-circle';
+                    break;
+                case 'warning':
+                    notification.classList.add('warning');
+                    icon.className = 'fas fa-exclamation-triangle';
+                    break;
+                default:
+                    notification.classList.add('info');
+                    icon.className = 'fas fa-info-circle';
+            }
+            
+            messageEl.textContent = message;
+            notification.classList.remove('hidden');
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // ===== FUNCIONES DE MODALES =====
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function showLoading(message = 'Procesando...') {
+            document.getElementById('loadingMessage').textContent = message;
+            openModal('loadingModal');
+        }
+
+        function hideLoading() {
+            closeModal('loadingModal');
+        }
+
+        // ===== AUTENTICACIÓN =====
+        function login(event) {
+            if (event) event.preventDefault();
+            
+            const username = document.querySelector('#loginForm input[type="text"]').value;
+            const password = document.querySelector('#loginForm input[type="password"]').value;
+            const team = document.querySelector('#loginForm select').value;
+            
+            if (!team) {
+                showNotification('Por favor selecciona un equipo', 'error');
+                return;
+            }
+            
+            showLoading('Verificando credenciales...');
+            
+            setTimeout(() => {
+                const user = database.users.find(u => u.username === username && u.password === password);
+                
+                if (user) {
+                    currentUser = { ...user, team };
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('appScreen').classList.remove('hidden');
+                    
+                    // Actualizar UI
+                    document.getElementById('currentTeam').textContent = team;
+                    document.getElementById('welcomeMessage').textContent = `Bienvenido, ${user.name}`;
+                    
+                    showNotification('¡Sesión iniciada correctamente!', 'success');
+                    loadDashboard();
+                } else {
+                    showNotification('Usuario o contraseña incorrectos', 'error');
+                }
+                
+                hideLoading();
+            }, 1500);
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('appScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            showNotification('Sesión cerrada correctamente', 'info');
+        }
+
+        // ===== GESTIÓN DE PRODUCTOS =====
+        function loadDashboard() {
+            showScreen('dashboard');
+        }
+
+        function showScreen(screenName) {
+            // Ocultar todos los contenidos
+            document.querySelectorAll('.content > div').forEach(div => {
+                div.classList.add('hidden');
+            });
+            
+            // Quitar activo de todos los items
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Activar el item correspondiente
+            document.querySelector(`.sidebar-item[data-screen="${screenName}"]`).classList.add('active');
+            
+            // Actualizar título
+            document.getElementById('pageTitle').textContent = {
+                dashboard: 'Dashboard',
+                inventory: 'Inventario',
+                reports: 'Reportes',
+                import: 'Importar',
+                profile: 'Perfil'
+            }[screenName];
+            
+            // Cargar contenido dinámico
+            fetch(`/templates/${screenName}.html`)
+                .then(response => response.text())
+                .then(html => {
+                    document.querySelector('.content').innerHTML = html;
+                    initScreen(screenName);
+                })
+                .catch(() => {
+                    // Fallback si no existe el template
+                    document.querySelector('.content').innerHTML = getScreenContent(screenName);
+                    initScreen(screenName);
+                });
+        }
+
+        function getScreenContent(screenName) {
+            switch(screenName) {
+                case 'dashboard':
+                    return `
+                        <div id="dashboardContent">
+                            <div class="grid grid-cols-3" style="margin-bottom: 1.5rem;">
+                                <div class="card">
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <div style="background: var(--primary-light); color: var(--primary); width: 3rem; height: 3rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                            <i class="fas fa-box"></i>
+                                        </div>
+                                        <div>
+                                            <h3 style="font-size: 1.5rem; margin-bottom: 0.25rem;">${database.products.length}</h3>
+                                            <p style="color: var(--gray-500);">Total Productos</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <div style="background: var(--success-light); color: var(--success); width: 3rem; height: 3rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </div>
+                                        <div>
+                                            <h3 style="font-size: 1.5rem; margin-bottom: 0.25rem;">${database.products.filter(p => p.quantity < 10).length}</h3>
+                                            <p style="color: var(--gray-500);">Stock Bajo</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <div style="background: var(--warning-light); color: var(--warning); width: 3rem; height: 3rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <div>
+                                            <h3 style="font-size: 1.5rem; margin-bottom: 0.25rem;">${database.imports.length}</h3>
+                                            <p style="color: var(--gray-500);">Importaciones</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">Productos Recientes</h3>
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Categoría</th>
+                                                <th>Cantidad</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${database.products.slice(0, 5).map(product => `
+                                                <tr>
+                                                    <td>${product.name}</td>
+                                                    <td><span class="badge badge-info">${product.category}</span></td>
+                                                    <td>${product.quantity} ${product.unit}</td>
+                                                    <td>
+                                                        ${product.quantity < 10 ? 
+                                                            '<span class="badge badge-error">Stock Bajo</span>' : 
+                                                            '<span class="badge badge-success">Disponible</span>'
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                case 'inventory':
+                    return `
+                        <div id="inventoryContent">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                    <input type="search" class="input" placeholder="🔍 Buscar productos..." style="width: 300px;">
+                                    <select class="input" style="width: 200px;">
+                                        <option value="">Todas las categorías</option>
+                                        <option value="Ferretería">Ferretería</option>
+                                        <option value="Electrónica">Electrónica</option>
+                                        <option value="Oficina">Oficina</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary" onclick="openModal('addProductModal')">
+                                    <i class="fas fa-plus"></i> Agregar Producto
+                                </button>
+                            </div>
+                            
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Código</th>
+                                            <th>Producto</th>
+                                            <th>Categoría</th>
+                                            <th>Cantidad</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${database.products.map(product => `
+                                            <tr>
+                                                <td><code>${product.code}</code></td>
+                                                <td>
+                                                    <div style="font-weight: 600;">${product.name}</div>
+                                                    <div style="color: var(--gray-500); font-size: 0.875rem;">${product.description}</div>
+                                                </td>
+                                                <td><span class="badge badge-info">${product.category}</span></td>
+                                                <td>${product.quantity} ${product.unit}</td>
+                                                <td>
+                                                    ${product.quantity < 10 ? 
+                                                        '<span class="badge badge-error">Stock Bajo</span>' : 
+                                                        '<span class="badge badge-success">Disponible</span>'
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-icon" onclick="editProduct(${product.id})" title="Editar">
+                                                        <i class="fas fa-edit" style="color: var(--gray-600);"></i>
+                                                    </button>
+                                                    <button class="btn btn-icon" onclick="deleteProduct(${product.id})" title="Eliminar">
+                                                        <i class="fas fa-trash" style="color: var(--error);"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    
+                // Implementar otras pantallas de manera similar
+                default:
+                    return `<div class="card"><h3>Pantalla ${screenName}</h3><p>Contenido en desarrollo</p></div>`;
+            }
+        }
+
+        function initScreen(screenName) {
+            // Inicializar componentes específicos de cada pantalla
+        }
+
+        function saveProduct() {
+            showLoading('Guardando producto...');
+            
+            setTimeout(() => {
+                const form = document.getElementById('addProductForm');
+                const newProduct = {
+                    id: database.products.length + 1,
+                    code: form.querySelector('input[type="text"]').value,
+                    name: form.querySelectorAll('input[type="text"]')[1].value,
+                    description: form.querySelector('textarea').value,
+                    category: form.querySelector('select').value,
+                    quantity: parseInt(form.querySelector('input[type="number"]').value),
+                    unit: form.querySelectorAll('select')[1].value,
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                database.products.push(newProduct);
+                saveDatabase();
+                
+                hideLoading();
+                closeModal('addProductModal');
+                showNotification('Producto agregado correctamente', 'success');
+                showScreen('inventory');
+            }, 1000);
+        }
+
+        function editProduct(id) {
+            const product = database.products.find(p => p.id === id);
+            if (!product) return;
+            
+            document.getElementById('editProductModal').querySelector('.modal-body').innerHTML = `
+                <form id="editProductForm">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Código</label>
+                            <input type="text" class="input" value="${product.code}" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Categoría</label>
+                            <select class="input" required>
+                                <option value="Ferretería" ${product.category === 'Ferretería' ? 'selected' : ''}>Ferretería</option>
+                                <option value="Electrónica" ${product.category === 'Electrónica' ? 'selected' : ''}>Electrónica</option>
+                                <option value="Oficina" ${product.category === 'Oficina' ? 'selected' : ''}>Oficina</option>
+                                <option value="Limpieza" ${product.category === 'Limpieza' ? 'selected' : ''}>Limpieza</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Nombre</label>
+                        <input type="text" class="input" value="${product.name}" required>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Descripción</label>
+                        <textarea class="input" rows="3">${product.description}</textarea>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;" class="required">Cantidad</label>
+                            <input type="number" class="input" value="${product.quantity}" min="0" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Unidad</label>
+                            <select class="input">
+                                <option value="unidades" ${product.unit === 'unidades' ? 'selected' : ''}>Unidades</option>
+                                <option value="metros" ${product.unit === 'metros' ? 'selected' : ''}>Metros</option>
+                                <option value="kg" ${product.unit === 'kg' ? 'selected' : ''}>Kilogramos</option>
+                                <option value="litros" ${product.unit === 'litros' ? 'selected' : ''}>Litros</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            `;
+            
+            openModal('editProductModal');
+            window.currentEditProductId = id;
+        }
+
+        function updateProduct() {
+            showLoading('Actualizando producto...');
+            
+            setTimeout(() => {
+                const form = document.getElementById('editProductForm');
+                const productIndex = database.products.findIndex(p => p.id === window.currentEditProductId);
+                
+                if (productIndex !== -1) {
+                    database.products[productIndex] = {
+                        ...database.products[productIndex],
+                        code: form.querySelector('input[type="text"]').value,
+                        name: form.querySelectorAll('input[type="text"]')[1].value,
+                        description: form.querySelector('textarea').value,
+                        category: form.querySelector('select').value,
+                        quantity: parseInt(form.querySelector('input[type="number"]').value),
+                        unit: form.querySelectorAll('select')[1].value,
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    saveDatabase();
+                    hideLoading();
+                    closeModal('editProductModal');
+                    showNotification('Producto actualizado correctamente', 'success');
+                    showScreen('inventory');
+                }
+            }, 1000);
+        }
+
+        function deleteProduct(id) {
+            if (confirm('¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.')) {
+                showLoading('Eliminando producto...');
+                
+                setTimeout(() => {
+                    database.products = database.products.filter(p => p.id !== id);
+                    saveDatabase();
+                    
+                    hideLoading();
+                    showNotification('Producto eliminado correctamente', 'success');
+                    showScreen('inventory');
+                }, 1000);
+            }
+        }
+
+        function generateReport() {
+            showLoading('Generando reporte...');
+            
+            setTimeout(() => {
+                const report = {
+                    id: Date.now(),
+                    type: 'inventory',
+                    date: new Date().toISOString(),
+                    products: database.products.length
+                };
+                
+                database.reports.push(report);
+                saveDatabase();
+                
+                hideLoading();
+                
+                // Crear y descargar reporte
+                const csvContent = "data:text/csv;charset=utf-8," 
+                    + "Código,Nombre,Categoría,Cantidad,Unidad\n"
+                    + database.products.map(p => 
+                        `"${p.code}","${p.name}","${p.category}",${p.quantity},"${p.unit}"`
+                    ).join("\n");
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `reporte_inventario_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                
+                showNotification('Reporte generado y descargado correctamente', 'success');
+            }, 2000);
+        }
+
+        // ===== INICIALIZACIÓN =====
+        let currentUser = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDatabase();
+            
+            // Configurar evento de login
+            document.getElementById('loginForm').addEventListener('submit', login);
+            
+            // Configurar eventos del sidebar
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const screen = this.getAttribute('data-screen');
+                    if (screen) showScreen(screen);
+                });
+            });
+            
+            // Cerrar modales al hacer clic fuera
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal(this.id);
+                    }
+                });
+            });
+            
+            // Cerrar modales con ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal-overlay').forEach(modal => {
+                        if (!modal.classList.contains('hidden')) {
+                            closeModal(modal.id);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

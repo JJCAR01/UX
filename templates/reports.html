@@ -1,0 +1,130 @@
+<div id="reportsContent">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <input type="search" class="input" placeholder="🔍 Buscar reportes..." style="width: 300px;" id="reportSearch">
+            <select class="input" style="width: 200px;" id="reportFilter">
+                <option value="">Todos los tipos</option>
+                <option value="inventory">Inventario</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" onclick="generateReport()">
+            <i class="fas fa-file-download"></i> Generar Nuevo Reporte
+        </button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom: 1rem; font-size: 1.25rem;">
+            <i class="fas fa-file-alt"></i> Reportes Generados
+        </h3>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tipo</th>
+                        <th>Fecha</th>
+                        <th>Productos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="reportsTableBody">
+                    <!-- Reportes se cargan dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function initScreen(screenName) {
+        if (screenName === 'reports') {
+            loadReports();
+            
+            // Configurar búsqueda y filtro
+            const searchInput = document.getElementById('reportSearch');
+            const filterSelect = document.getElementById('reportFilter');
+            
+            searchInput.addEventListener('input', loadReports);
+            filterSelect.addEventListener('change', loadReports);
+        }
+    }
+
+    function loadReports() {
+        const searchTerm = document.getElementById('reportSearch').value.toLowerCase();
+        const filterType = document.getElementById('reportFilter').value;
+        
+        const filteredReports = database.reports.filter(report => {
+            const matchesSearch = report.id.toString().includes(searchTerm) ||
+                                report.type.toLowerCase().includes(searchTerm) ||
+                                new Date(report.date).toLocaleString().toLowerCase().includes(searchTerm);
+            const matchesFilter = !filterType || report.type === filterType;
+            return matchesSearch && matchesFilter;
+        });
+
+        const tableBody = document.getElementById('reportsTableBody');
+        tableBody.innerHTML = filteredReports.length > 0 ? filteredReports.map(report => `
+            <tr>
+                <td><code>${report.id}</code></td>
+                <td><span class="badge badge-info">${report.type.charAt(0).toUpperCase() + report.type.slice(1)}</span></td>
+                <td>${new Date(report.date).toLocaleString()}</td>
+                <td>${report.products}</td>
+                <td>
+                    <button class="btn btn-icon" onclick="downloadReport(${report.id})" title="Descargar">
+                        <i class="fas fa-download" style="color: var(--primary);"></i>
+                    </button>
+                    <button class="btn btn-icon" onclick="deleteReport(${report.id})" title="Eliminar">
+                        <i class="fas fa-trash" style="color: var(--error);"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('') : `
+            <tr>
+                <td colspan="5" class="text-center">No se encontraron reportes</td>
+            </tr>
+        `;
+    }
+
+    function downloadReport(id) {
+        showLoading('Descargando reporte...');
+        
+        setTimeout(() => {
+            const report = database.reports.find(r => r.id === id);
+            if (report) {
+                // Generar CSV (mismo formato que generateReport)
+                const csvContent = "data:text/csv;charset=utf-8," 
+                    + "Código,Nombre,Categoría,Cantidad,Unidad\n"
+                    + database.products.map(p => 
+                        `"${p.code}","${p.name}","${p.category}",${p.quantity},"${p.unit}"`
+                    ).join("\n");
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `reporte_${report.type}_${report.id}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showNotification('Reporte descargado correctamente', 'success');
+            } else {
+                showNotification('Reporte no encontrado', 'error');
+            }
+            hideLoading();
+        }, 1000);
+    }
+
+    function deleteReport(id) {
+        if (confirm('¿Estás seguro de eliminar este reporte? Esta acción no se puede deshacer.')) {
+            showLoading('Eliminando reporte...');
+            
+            setTimeout(() => {
+                database.reports = database.reports.filter(r => r.id !== id);
+                saveDatabase();
+                
+                hideLoading();
+                showNotification('Reporte eliminado correctamente', 'success');
+                loadReports();
+            }, 1000);
+        }
+    }
+</script>

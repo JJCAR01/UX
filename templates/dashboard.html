@@ -1,0 +1,388 @@
+<div id="dashboardContent">
+    <!-- Header del Dashboard -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h2 style="color: var(--gray-800); margin-bottom: 0.5rem;">Resumen General</h2>
+            <p style="color: var(--gray-500);">Visión general del estado de tu inventario</p>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <button class="btn btn-secondary" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+            <button class="btn btn-primary" onclick="generateDashboardReport()">
+                <i class="fas fa-download"></i> Exportar Reporte
+            </button>
+        </div>
+    </div>
+
+    <!-- Métricas Principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1.5rem" style="margin-bottom: 2rem;">
+        <!-- Total Productos -->
+        <div class="card metric-card">
+            <div class="metric-icon" style="background: var(--primary-light); color: var(--primary);">
+                <i class="fas fa-boxes"></i>
+            </div>
+            <div>
+                <h3 class="metric-value" id="totalProducts">0</h3>
+                <p class="metric-label">Total Productos</p>
+            </div>
+        </div>
+
+        <!-- Stock Bajo -->
+        <div class="card metric-card">
+            <div class="metric-icon" style="background: var(--error-light); color: var(--error);">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div>
+                <h3 class="metric-value" id="lowStockCount">0</h3>
+                <p class="metric-label">Stock Bajo</p>
+            </div>
+        </div>
+
+        <!-- Valor Total -->
+        <div class="card metric-card">
+            <div class="metric-icon" style="background: var(--success-light); color: var(--success);">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div>
+                <h3 class="metric-value" id="totalValue">$0</h3>
+                <p class="metric-label">Valor Total</p>
+            </div>
+        </div>
+
+        <!-- Productos Agregados Hoy -->
+        <div class="card metric-card">
+            <div class="metric-icon" style="background: var(--info-light); color: var(--info);">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <h3 class="metric-value" id="todayAdded">0</h3>
+                <p class="metric-label">Agregados Hoy</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y Estadísticas -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-1.5rem" style="margin-bottom: 2rem;">
+        <!-- Distribución por Categoría -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="color: var(--gray-800);">Distribución por Categoría</h3>
+                <button class="btn btn-icon" onclick="toggleChartView('category')">
+                    <i class="fas fa-chart-pie"></i>
+                </button>
+            </div>
+            <div id="categoryChart" style="height: 300px;">
+                <div class="chart-placeholder">
+                    <i class="fas fa-chart-pie" style="font-size: 3rem; color: var(--gray-300); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--gray-500);">Cargando gráfico...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tendencia de Stock -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="color: var(--gray-800);">Tendencia de Stock</h3>
+                <select class="input" style="width: 150px;" onchange="updateTrendChart(this.value)">
+                    <option value="7">Últimos 7 días</option>
+                    <option value="30" selected>Últimos 30 días</option>
+                    <option value="90">Últimos 3 meses</option>
+                </select>
+            </div>
+
+            <div id="trendChart" style="height: 300px;">
+                <div class="chart-placeholder">
+                    <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--gray-300); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--gray-500);">Cargando tendencias...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos Recientes y Alertas -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-1.5rem">
+        <!-- Productos Recientes -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="color: var(--gray-800);">Productos Recientes</h3>
+                <button class="btn btn-secondary" onclick="showScreen('inventory')">
+                    <i class="fas fa-eye"></i> Ver Todos
+                </button>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Cantidad</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentProductsTable">
+                        <!-- Los productos se cargarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Alertas y Notificaciones -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="color: var(--gray-800);">Alertas del Sistema</h3>
+                <span class="badge badge-error" id="alertsCount">0</span>
+            </div>
+            <div id="alertsContainer">
+                <!-- Las alertas se cargarán dinámicamente -->
+                <div class="alert-placeholder">
+                    <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--gray-500); text-align: center;">No hay alertas críticas</p>
+                    <p style="color: var(--gray-400); font-size: 0.875rem; text-align: center;">Todo funciona correctamente</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card" style="margin-top: 1.5rem;">
+        <h3 style="color: var(--gray-800); margin-bottom: 1.5rem;">Acciones Rápidas</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-1rem">
+            <button class="btn btn-secondary" onclick="openModal('addProductModal')">
+                <i class="fas fa-plus"></i>
+                <span>Agregar Producto</span>
+            </button>
+            <button class="btn btn-secondary" onclick="showScreen('import')">
+                <i class="fas fa-file-import"></i>
+                <span>Importar Excel</span>
+            </button>
+            <button class="btn btn-secondary" onclick="generateReport()">
+                <i class="fas fa-file-export"></i>
+                <span>Generar Reporte</span>
+            </button>
+            <button class="btn btn-secondary" onclick="showScreen('reports')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Ver Estadísticas</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .metric-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+
+    .metric-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--gray-800);
+        margin-bottom: 0.25rem;
+    }
+
+    .metric-label {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+
+    .chart-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 2rem;
+    }
+
+    .alert-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .grid {
+        display: grid;
+    }
+
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    @media (min-width: 768px) {
+        .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (min-width: 1024px) {
+        .lg\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    .gap-1rem { gap: 1rem; }
+    .gap-1\.5rem { gap: 1.5rem; }
+</style>
+
+<script>
+    // Función para cargar los datos del dashboard
+    function loadDashboardData() {
+        showLoading('Cargando dashboard...');
+        
+        setTimeout(() => {
+            // Actualizar métricas
+            document.getElementById('totalProducts').textContent = database.products.length;
+            
+            const lowStock = database.products.filter(p => p.quantity < 10).length;
+            document.getElementById('lowStockCount').textContent = lowStock;
+            
+            // Simular valor total (en un sistema real, tendrías precios)
+            const totalValue = database.products.reduce((sum, product) => sum + (product.quantity * 15), 0);
+            document.getElementById('totalValue').textContent = `$${totalValue.toLocaleString()}`;
+            
+            // Productos agregados hoy
+            const today = new Date().toISOString().split('T')[0];
+            const todayAdded = database.products.filter(p => p.lastUpdated.startsWith(today)).length;
+            document.getElementById('todayAdded').textContent = todayAdded;
+            
+            // Actualizar tabla de productos recientes
+            updateRecentProducts();
+            
+            // Actualizar alertas
+            updateAlerts();
+            
+            hideLoading();
+        }, 1000);
+    }
+
+    function updateRecentProducts() {
+        const tbody = document.getElementById('recentProductsTable');
+        const recentProducts = [...database.products]
+            .sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated))
+            .slice(0, 5);
+        
+        tbody.innerHTML = recentProducts.map(product => `
+            <tr>
+                <td>
+                    <div style="font-weight: 600;">${product.name}</div>
+                    <div style="color: var(--gray-500); font-size: 0.875rem;">${product.code}</div>
+                </td>
+                <td><span class="badge badge-info">${product.category}</span></td>
+                <td>${product.quantity} ${product.unit}</td>
+                <td>
+                    ${product.quantity < 5 ? 
+                        '<span class="badge badge-error">Crítico</span>' :
+                    product.quantity < 10 ?
+                        '<span class="badge badge-warning">Bajo</span>' :
+                        '<span class="badge badge-success">OK</span>'
+                    }
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateAlerts() {
+        const container = document.getElementById('alertsContainer');
+        const countElement = document.getElementById('alertsCount');
+        
+        const lowStockProducts = database.products.filter(p => p.quantity < 5);
+        const criticalAlerts = lowStockProducts.length;
+        
+        countElement.textContent = criticalAlerts;
+        
+        if (criticalAlerts === 0) {
+            container.innerHTML = `
+                <div class="alert-placeholder">
+                    <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--gray-500); text-align: center;">No hay alertas críticas</p>
+                    <p style="color: var(--gray-400); font-size: 0.875rem; text-align: center;">Todo funciona correctamente</p>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <p style="color: var(--error); font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle"></i> ${criticalAlerts} alerta(s) crítica(s)
+                    </p>
+                    <p style="color: var(--gray-500); font-size: 0.875rem;">
+                        Productos con stock crítico que necesitan atención inmediata
+                    </p>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    ${lowStockProducts.map(product => `
+                        <div style="display: flex; justify-content: between; align-items: center; padding: 0.75rem; border-bottom: 1px solid var(--gray-200);">
+                            <div>
+                                <div style="font-weight: 600;">${product.name}</div>
+                                <div style="color: var(--gray-500); font-size: 0.875rem;">Solo ${product.quantity} ${product.unit} restantes</div>
+                            </div>
+                            <button class="btn btn-icon" onclick="editProduct(${product.id})" title="Reabastecer">
+                                <i class="fas fa-cart-plus" style="color: var(--primary);"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    }
+
+    function refreshDashboard() {
+        showNotification('Dashboard actualizado', 'success');
+        loadDashboardData();
+    }
+
+    function generateDashboardReport() {
+        showLoading('Generando reporte del dashboard...');
+        
+        setTimeout(() => {
+            const reportData = {
+                fecha: new Date().toLocaleDateString(),
+                totalProductos: database.products.length,
+                stockBajo: database.products.filter(p => p.quantity < 10).length,
+                stockCritico: database.products.filter(p => p.quantity < 5).length,
+                productos: database.products.map(p => ({
+                    código: p.code,
+                    nombre: p.name,
+                    categoría: p.category,
+                    cantidad: p.quantity,
+                    unidad: p.unit,
+                    estado: p.quantity < 5 ? 'Crítico' : p.quantity < 10 ? 'Bajo' : 'OK'
+                }))
+            };
+            
+            // Convertir a JSON y descargar
+            const dataStr = JSON.stringify(reportData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `reporte_dashboard_${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            hideLoading();
+            showNotification('Reporte descargado correctamente', 'success');
+        }, 1500);
+    }
+
+    // Cargar datos cuando se muestra el dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('dashboardContent')) {
+            loadDashboardData();
+        }
+    });
+</script>

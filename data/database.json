@@ -1,0 +1,54 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "admin123",
+      "name": "Administrador",
+      "email": "admin@empresa.com",
+      "role": "Administrador"
+    },
+    {
+      "id": 2,
+      "username": "usuario",
+      "password": "user123",
+      "name": "Usuario General",
+      "email": "usuario@empresa.com",
+      "role": "Usuario"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "code": "TORN-001",
+      "name": "Tornillo M8 x 20mm",
+      "description": "Tornillo hexagonal galvanizado",
+      "category": "Ferretería",
+      "quantity": 150,
+      "unit": "unidades",
+      "lastUpdated": "2023-09-15T10:30:00"
+    },
+    {
+      "id": 2,
+      "code": "CABLE-002",
+      "name": "Cable UTP Cat 6",
+      "description": "Cable de red categoría 6",
+      "category": "Electrónica",
+      "quantity": 45,
+      "unit": "metros",
+      "lastUpdated": "2023-09-14T14:20:00"
+    },
+    {
+      "id": 3,
+      "code": "PAPEL-003",
+      "name": "Papel Bond A4",
+      "description": "Papel blanco 75g para impresión",
+      "category": "Oficina",
+      "quantity": 25,
+      "unit": "paquetes",
+      "lastUpdated": "2023-09-13T09:15:00"
+    }
+  ],
+  "imports": [],
+  "reports": []
+}

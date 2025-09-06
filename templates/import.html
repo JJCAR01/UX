@@ -1,0 +1,935 @@
+<div id="importContent">
+    <!-- Header de Importación -->
+    <div class="page-header">
+        <div>
+            <h2><i class="fas fa-file-import"></i> Importar Productos</h2>
+            <p class="subtitle">Importa productos masivamente desde archivos Excel</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="downloadTemplate()">
+                <i class="fas fa-download"></i> Descargar Plantilla
+            </button>
+        </div>
+    </div>
+
+    <!-- Panel de Importación -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Panel de Carga -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-upload"></i> Cargar Archivo Excel</h3>
+            </div>
+            <div class="card-body">
+                <div class="upload-instructions">
+                    <p class="text-sm text-gray-600 mb-4">
+                        <i class="fas fa-info-circle"></i> Formatos soportados: .xlsx, .xls (Máximo 10MB)
+                    </p>
+                    
+                    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <div class="drop-zone-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h4>Arrastra tu archivo aquí</h4>
+                            <p>o haz clic para seleccionar</p>
+                        </div>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden" 
+                               onchange="handleFileSelect(event)">
+                    </div>
+
+                    <div class="upload-requirements">
+                        <h5 class="requirements-title">Requisitos del archivo:</h5>
+                        <ul class="requirements-list">
+                            <li><i class="fas fa-check-circle"></i> Formato de columnas específico</li>
+                            <li><i class="fas fa-check-circle"></i> Códigos únicos para cada producto</li>
+                            <li><i class="fas fa-check-circle"></i> Valores numéricos en columnas de cantidad</li>
+                            <li><i class="fas fa-check-circle"></i> Categorías existentes en el sistema</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas de Importación -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-bar"></i> Estadísticas de Importación</h3>
+            </div>
+            <div class="card-body">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-icon success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number" id="totalImports">0</span>
+                            <span class="stat-label">Importaciones Totales</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-icon primary">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number" id="totalProductsImported">0</span>
+                            <span class="stat-label">Productos Importados</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-icon warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number" id="lastImportDate">--</span>
+                            <span class="stat-label">Última Importación</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-icon info">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number" id="successRate">100%</span>
+                            <span class="stat-label">Tasa de Éxito</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h5 class="activity-title">Actividad Reciente</h5>
+                    <div class="activity-list" id="recentActivityList">
+                        <div class="activity-item">
+                            <i class="fas fa-info-circle"></i>
+                            <span>No hay actividad reciente</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista Previa de Importación (Oculta inicialmente) -->
+    <div id="importPreview" class="card hidden">
+        <div class="card-header">
+            <h3><i class="fas fa-eye"></i> Vista Previa de Importación</h3>
+            <div class="header-badges">
+                <span class="badge badge-success" id="validRowsCount">0 válidos</span>
+                <span class="badge badge-error" id="errorRowsCount">0 errores</span>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="import-summary" id="importSummary">
+                <!-- Resumen de importación -->
+            </div>
+
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Cantidad</th>
+                            <th>Unidad</th>
+                            <th>Validación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewTable">
+                        <!-- Filas de preview -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="import-actions">
+                <button class="btn btn-success" onclick="confirmImport()">
+                    <i class="fas fa-check"></i> Confirmar Importación
+                </button>
+                <button class="btn btn-secondary" onclick="cancelImport()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button class="btn btn-warning" onclick="downloadErrorReport()">
+                    <i class="fas fa-download"></i> Descargar Reporte de Errores
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Importaciones -->
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="fas fa-history"></i> Historial de Importaciones</h3>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="refreshImportHistory()">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Archivo</th>
+                            <th>Fecha</th>
+                            <th>Productos</th>
+                            <th>Estado</th>
+                            <th>Errores</th>
+                            <th>Usuario</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="importHistoryTable">
+                        <!-- Historial de importaciones -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="importPagination">
+                <button class="btn btn-secondary" onclick="loadMoreImports()">
+                    <i class="fas fa-chevron-down"></i> Cargar más
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos específicos para importación */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem 0;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .page-header h2 {
+        color: var(--gray-800);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .subtitle {
+        color: var(--gray-500);
+        font-size: 1rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .card-header h3 {
+        color: var(--gray-800);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+        border: 2px dashed var(--primary);
+        border-radius: var(--radius-lg);
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: var(--primary-light);
+        margin-bottom: 1.5rem;
+    }
+
+    .drop-zone:hover {
+        border-color: var(--primary-dark);
+        background: var(--primary-light);
+        transform: translateY(-2px);
+    }
+
+    .drop-zone.dragover {
+        border-color: var(--success);
+        background: var(--success-light);
+    }
+
+    .drop-zone-content i {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+
+    .drop-zone-content h4 {
+        color: var(--gray-800);
+        margin-bottom: 0.5rem;
+    }
+
+    .drop-zone-content p {
+        color: var(--gray-500);
+    }
+
+    /* Requisitos */
+    .upload-requirements {
+        background: var(--gray-50);
+        padding: 1.5rem;
+        border-radius: var(--radius);
+        border-left: 4px solid var(--info);
+    }
+
+    .requirements-title {
+        color: var(--gray-800);
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .requirements-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .requirements-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        color: var(--gray-600);
+    }
+
+    .requirements-list li i {
+        color: var(--success);
+    }
+
+    /* Estadísticas */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: var(--radius);
+    }
+
+    .stat-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-icon.success { background: var(--success-light); color: var(--success); }
+    .stat-icon.primary { background: var(--primary-light); color: var(--primary); }
+    .stat-icon.warning { background: var(--warning-light); color: var(--warning); }
+    .stat-icon.info { background: var(--info-light); color: var(--info); }
+
+    .stat-number {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-800);
+    }
+
+    .stat-label {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+
+    /* Actividad Reciente */
+    .recent-activity {
+        border-top: 1px solid var(--gray-200);
+        padding-top: 1.5rem;
+    }
+
+    .activity-title {
+        color: var(--gray-800);
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .activity-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--gray-100);
+        color: var(--gray-600);
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Vista Previa */
+    .header-badges {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .import-summary {
+        background: var(--gray-50);
+        padding: 1rem;
+        border-radius: var(--radius);
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--info);
+    }
+
+    .import-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    /* Paginación */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    /* Estados de validación */
+    .validation-success {
+        color: var(--success);
+        font-weight: 600;
+    }
+
+    .validation-error {
+        color: var(--error);
+        font-weight: 600;
+    }
+
+    .validation-warning {
+        color: var(--warning);
+        font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .import-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<script>
+    // Variables globales para la importación
+    let currentImportData = [];
+    let importErrors = [];
+    let currentFile = null;
+
+    // Inicializar la página de importación
+    function initImportPage() {
+        loadImportStatistics();
+        loadImportHistory();
+        setupDragAndDrop();
+    }
+
+    // Configurar drag and drop
+    function setupDragAndDrop() {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        if (!dropZone || !fileInput) return;
+
+        // Eventos para drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropZone.classList.add('dragover');
+        }
+
+        function unhighlight() {
+            dropZone.classList.remove('dragover');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect({ target: { files } });
+            }
+        }
+    }
+
+    // Manejar selección de archivo
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        currentFile = file;
+
+        // Validar tipo de archivo
+        if (!file.name.match(/\.(xlsx|xls)$/i)) {
+            showNotification('Solo se permiten archivos Excel (.xlsx, .xls)', 'error');
+            return;
+        }
+
+        // Validar tamaño (10MB máximo)
+        if (file.size > 10 * 1024 * 1024) {
+            showNotification('El archivo no debe exceder los 10MB', 'error');
+            return;
+        }
+
+        showLoading('Leyendo archivo Excel...');
+        
+        // Leer el archivo Excel
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Procesar la primera hoja
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                processImportData(jsonData);
+            } catch (error) {
+                hideLoading();
+                showNotification('Error al leer el archivo Excel: ' + error.message, 'error');
+            }
+        };
+        
+        reader.readAsArrayBuffer(file);
+    }
+
+    // Procesar datos de importación
+    function processImportData(data) {
+        currentImportData = [];
+        importErrors = [];
+        
+        data.forEach((row, index) => {
+            const validation = validateImportRow(row, index + 2); // +2 porque Excel empieza en 1 y tiene headers
+            
+            if (validation.isValid) {
+                currentImportData.push({
+                    ...row,
+                    status: 'valid',
+                    rowNumber: index + 2
+                });
+            } else {
+                currentImportData.push({
+                    ...row,
+                    status: 'error',
+                    errors: validation.errors,
+                    rowNumber: index + 2
+                });
+                importErrors.push(...validation.errors.map(error => ({
+                    row: index + 2,
+                    field: error.field,
+                    message: error.message
+                })));
+            }
+        });
+        
+        hideLoading();
+        showImportPreview();
+    }
+
+    // Validar fila de importación
+    function validateImportRow(row, rowNumber) {
+        const errors = [];
+        
+        // Validar código
+        if (!row.codigo || !row.codigo.toString().trim()) {
+            errors.push({ field: 'codigo', message: 'Código es requerido' });
+        }
+        
+        // Validar nombre
+        if (!row.nombre || !row.nombre.toString().trim()) {
+            errors.push({ field: 'nombre', message: 'Nombre es requerido' });
+        }
+        
+        // Validar categoría
+        const validCategories = ['Ferretería', 'Electrónica', 'Oficina', 'Limpieza'];
+        if (!row.categoria || !validCategories.includes(row.categoria)) {
+            errors.push({ 
+                field: 'categoria', 
+                message: `Categoría inválida. Debe ser: ${validCategories.join(', ')}` 
+            });
+        }
+        
+        // Validar cantidad
+        if (!row.cantidad || isNaN(parseInt(row.cantidad)) || parseInt(row.cantidad) < 0) {
+            errors.push({ field: 'cantidad', message: 'Cantidad debe ser un número positivo' });
+        }
+        
+        // Validar unidad
+        const validUnits = ['unidades', 'metros', 'kg', 'litros', 'paquetes'];
+        if (row.unidad && !validUnits.includes(row.unidad)) {
+            errors.push({ 
+                field: 'unidad', 
+                message: `Unidad inválida. Debe ser: ${validUnits.join(', ')}` 
+            });
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    // Mostrar vista previa de importación
+    function showImportPreview() {
+        const preview = document.getElementById('importPreview');
+        const validRows = currentImportData.filter(row => row.status === 'valid').length;
+        const errorRows = currentImportData.filter(row => row.status === 'error').length;
+        
+        // Actualizar contadores
+        document.getElementById('validRowsCount').textContent = `${validRows} válidos`;
+        document.getElementById('errorRowsCount').textContent = `${errorRows} errores`;
+        
+        // Actualizar resumen
+        document.getElementById('importSummary').innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                    <strong>Total filas:</strong> ${currentImportData.length}
+                </div>
+                <div class="validation-success">
+                    <strong>Válidas:</strong> ${validRows}
+                </div>
+                <div class="${errorRows > 0 ? 'validation-error' : 'validation-success'}">
+                    <strong>Con errores:</strong> ${errorRows}
+                </div>
+                <div>
+                    <strong>Archivo:</strong> ${currentFile.name}
+                </div>
+            </div>
+            ${errorRows > 0 ? `
+                <div style="margin-top: 1rem; padding: 1rem; background: var(--error-light); border-radius: var(--radius);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Corrige los errores antes de importar</strong>
+                </div>
+            ` : ''}
+        `;
+        
+        // Actualizar tabla de preview
+        const tableBody = document.getElementById('previewTable');
+        tableBody.innerHTML = currentImportData.map(row => `
+            <tr style="${row.status === 'error' ? 'background: var(--error-light);' : ''}">
+                <td>
+                    ${row.status === 'valid' ? 
+                        '<span class="badge badge-success"><i class="fas fa-check"></i> Válido</span>' : 
+                        '<span class="badge badge-error"><i class="fas fa-times"></i> Error</span>'
+                    }
+                </td>
+                <td>${row.codigo || ''}</td>
+                <td>${row.nombre || ''}</td>
+                <td>${row.categoria || ''}</td>
+                <td>${row.cantidad || ''}</td>
+                <td>${row.unidad || 'unidades'}</td>
+                <td>
+                    ${row.status === 'error' ? 
+                        row.errors.map(error => `
+                            <div class="validation-error">
+                                <small>${error.field}: ${error.message}</small>
+                            </div>
+                        `).join('') : 
+                        '<span class="validation-success"><i class="fas fa-check"></i> OK</span>'
+                    }
+                </td>
+            </tr>
+        `).join('');
+        
+        preview.classList.remove('hidden');
+    }
+
+    // Confirmar importación
+    function confirmImport() {
+        const validRows = currentImportData.filter(row => row.status === 'valid');
+        
+        if (validRows.length === 0) {
+            showNotification('No hay filas válidas para importar', 'warning');
+            return;
+        }
+        
+        showLoading('Importando productos...');
+        
+        setTimeout(() => {
+            // Procesar importación
+            validRows.forEach(row => {
+                const newProduct = {
+                    id: Date.now() + Math.random(),
+                    code: row.codigo,
+                    name: row.nombre,
+                    description: row.descripcion || '',
+                    category: row.categoria,
+                    quantity: parseInt(row.cantidad),
+                    unit: row.unidad || 'unidades',
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                // Verificar si ya existe el código
+                const existingIndex = database.products.findIndex(p => p.code === newProduct.code);
+                if (existingIndex !== -1) {
+                    // Actualizar producto existente
+                    database.products[existingIndex] = newProduct;
+                } else {
+                    // Agregar nuevo producto
+                    database.products.push(newProduct);
+                }
+            });
+            
+            // Guardar en el historial
+            const importRecord = {
+                id: Date.now(),
+                filename: currentFile.name,
+                date: new Date().toISOString(),
+                totalRows: currentImportData.length,
+                importedRows: validRows.length,
+                errorRows: currentImportData.length - validRows.length,
+                status: currentImportData.length - validRows.length === 0 ? 'success' : 'partial',
+                errors: importErrors
+            };
+            
+            database.imports.unshift(importRecord);
+            saveDatabase();
+            
+            hideLoading();
+            
+            if (importErrors.length === 0) {
+                showNotification(`¡Importación completada! ${validRows.length} productos importados`, 'success');
+            } else {
+                showNotification(`Importación completada con ${importErrors.length} error(es)`, 'warning');
+            }
+            
+            cancelImport();
+            loadImportStatistics();
+            loadImportHistory();
+        }, 2000);
+    }
+
+    // Cancelar importación
+    function cancelImport() {
+        document.getElementById('importPreview').classList.add('hidden');
+        document.getElementById('fileInput').value = '';
+        currentImportData = [];
+        importErrors = [];
+        currentFile = null;
+    }
+
+    // Descargar plantilla
+    function downloadTemplate() {
+        showLoading('Generando plantilla...');
+        
+        setTimeout(() => {
+            const templateData = [
+                {
+                    codigo: 'PROD-001',
+                    nombre: 'Tornillo hexagonal M8',
+                    descripcion: 'Tornillo de acero galvanizado',
+                    categoria: 'Ferretería',
+                    cantidad: 100,
+                    unidad: 'unidades'
+                },
+                {
+                    codigo: 'PROD-002',
+                    nombre: 'Cable UTP Cat6',
+                    descripcion: 'Cable de red categoría 6',
+                    categoria: 'Electrónica',
+                    cantidad: 50,
+                    unidad: 'metros'
+                }
+            ];
+            
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Plantilla');
+            
+            XLSX.writeFile(workbook, 'plantilla_importacion_productos.xlsx');
+            
+            hideLoading();
+            showNotification('Plantilla descargada correctamente', 'success');
+        }, 1000);
+    }
+
+    // Descargar reporte de errores
+    function downloadErrorReport() {
+        if (importErrors.length === 0) {
+            showNotification('No hay errores para reportar', 'info');
+            return;
+        }
+        
+        const worksheet = XLSX.utils.json_to_sheet(importErrors);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Errores');
+        
+        XLSX.writeFile(workbook, `reporte_errores_importacion_${new Date().toISOString().split('T')[0]}.xlsx`);
+        
+        showNotification('Reporte de errores descargado', 'success');
+    }
+
+    // Cargar estadísticas de importación
+    function loadImportStatistics() {
+        const totalImports = database.imports.length;
+        const totalProducts = database.imports.reduce((sum, imp) => sum + imp.importedRows, 0);
+        const lastImport = database.imports[0];
+        const successRate = totalImports > 0 ? 
+            Math.round((database.imports.filter(imp => imp.status === 'success').length / totalImports) * 100) : 100;
+        
+        document.getElementById('totalImports').textContent = totalImports;
+        document.getElementById('totalProductsImported').textContent = totalProducts;
+        document.getElementById('lastImportDate').textContent = lastImport ? 
+            new Date(lastImport.date).toLocaleDateString() : '--';
+        document.getElementById('successRate').textContent = `${successRate}%`;
+        
+        // Actualizar actividad reciente
+        const activityList = document.getElementById('recentActivityList');
+        if (database.imports.length === 0) {
+            activityList.innerHTML = `
+                <div class="activity-item">
+                    <i class="fas fa-info-circle"></i>
+                    <span>No hay actividad reciente</span>
+                </div>
+            `;
+        } else {
+            activityList.innerHTML = database.imports.slice(0, 5).map(imp => `
+                <div class="activity-item">
+                    <i class="fas fa-file-import" style="color: ${imp.status === 'success' ? 'var(--success)' : 'var(--warning)'}"></i>
+                    <span>${imp.filename} - ${imp.importedRows} productos</span>
+                    <small style="color: var(--gray-400); margin-left: auto;">
+                        ${new Date(imp.date).toLocaleDateString()}
+                    </small>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Cargar historial de importaciones
+    function loadImportHistory() {
+        const tableBody = document.getElementById('importHistoryTable');
+        
+        if (database.imports.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                        <p>No hay historial de importaciones</p>
+                    </td>
+                </tr>
+            `;
+        } else {
+            tableBody.innerHTML = database.imports.map(imp => `
+                <tr>
+                    <td>
+                        <div style="font-weight: 600;">${imp.filename}</div>
+                        <small style="color: var(--gray-500);">${formatFileSize(imp.filename)}</small>
+                    </td>
+                    <td>${new Date(imp.date).toLocaleDateString()}</td>
+                    <td>${imp.importedRows}/${imp.totalRows}</td>
+                    <td>
+                        ${imp.status === 'success' ? 
+                            '<span class="badge badge-success">Completado</span>' : 
+                            '<span class="badge badge-warning">Parcial</span>'
+                        }
+                    </td>
+                    <td>
+                        ${imp.errorRows > 0 ? 
+                            `<span class="validation-error">${imp.errorRows} errores</span>` : 
+                            '<span class="validation-success">Sin errores</span>'
+                        }
+                    </td>
+                    <td>${currentUser?.name || 'Sistema'}</td>
+                    <td>
+                        <button class="btn btn-icon" onclick="viewImportDetails(${imp.id})" title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="downloadImportReport(${imp.id})" title="Descargar reporte">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    // Funciones auxiliares
+    function formatFileSize(filename) {
+        // Simular tamaño de archivo (en un sistema real, esto vendría del servidor)
+        const sizes = ['5KB', '12KB', '25KB', '50KB', '120KB'];
+        return sizes[Math.floor(Math.random() * sizes.length)];
+    }
+
+    function refreshImportHistory() {
+        showNotification('Historial actualizado', 'success');
+        loadImportHistory();
+    }
+
+    function viewImportDetails(importId) {
+        // Implementar vista de detalles de importación
+        showNotification('Funcionalidad de detalles en desarrollo', 'info');
+    }
+
+    function downloadImportReport(importId) {
+        // Implementar descarga de reporte específico
+        showNotification('Descarga de reporte en desarrollo', 'info');
+    }
+
+    // Inicializar la página cuando se carga
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('importContent')) {
+            initImportPage();
+        }
+    });
+</script>
